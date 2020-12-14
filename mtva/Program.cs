@@ -12,11 +12,30 @@ namespace mtva
 {
     class Program
     {
+        public static bool highq = false;
         static void Main(string[] args)
         {
+            List<string> downloadQueue = new List<string>();
+
             foreach (var arg in args)
             {
-                processVideo(arg);
+                if (arg.Contains("-q="))
+                {
+                    string quality = arg.Split('=')[1];
+                    if (quality == "high")
+                    {
+                        highq = true;
+                    }
+                }
+                else
+                {
+                    downloadQueue.Add(arg);
+                }
+            }
+
+            foreach (var item in downloadQueue)
+            {
+                processVideo(item);
             }
             Console.WriteLine("All downloads complete.");
             Console.WriteLine("Press any button to close.");
@@ -106,20 +125,24 @@ namespace mtva
         static void downloadVideo(List<Streams> streams, string vidName)
         {
             string winner = "";
-            int bandwidth = 0;
-            foreach (var item in streams)
+            if (highq == true)
             {
-                if (item.Resolution.Contains("1080"))
-                {
-                    bandwidth = item.Bandwidth;
-                    winner = item.Playlist;
-                }
-            }
-
-            if (string.IsNullOrEmpty(winner))
-            {
+                Console.WriteLine("Downloading highest quality.");
                 winner = streams[streams.Count - 1].Playlist;
             }
+            else
+            {
+                Console.WriteLine("These resolutions are the available: ");
+                for (int i = 0; i < streams.Count; i++)
+                {
+                    Console.WriteLine("Stream {0}: {1}", i, streams[i].Resolution);
+                }
+                Console.WriteLine("Enter the stream number you wish to download: ");
+                int num = Convert.ToInt32(Console.ReadLine());
+
+                winner = streams[num].Playlist;
+            }
+
             var chunkInfo = getChunks(winner);
 
             try
