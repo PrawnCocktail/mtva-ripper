@@ -18,6 +18,9 @@ namespace mtva
             {
                 processVideo(arg);
             }
+            Console.WriteLine("All downloads complete.");
+            Console.WriteLine("Press any button to close.");
+            Console.ReadKey();
         }
 
         static void processVideo(string id)
@@ -135,6 +138,16 @@ namespace mtva
                     {
                         client.Headers.Add("user-agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4354.0 Safari/537.36");
 
+                        RijndaelManaged algorithm = new RijndaelManaged()
+                        {
+                            Padding = PaddingMode.PKCS7,
+                            Mode = CipherMode.CBC,
+                            KeySize = 128,
+                            BlockSize = 128,
+                            Key = chunkInfo.Key,
+                            IV = iv
+                        };
+
                         int chunknum = 1;
                         foreach (var chunk in chunkInfo.Streams)
                         {
@@ -142,29 +155,17 @@ namespace mtva
                             chunknum++;
                             var inputStream = client.DownloadData(chunk);
 
-                            RijndaelManaged algorithm = new RijndaelManaged()
+                            using (MemoryStream ms = new MemoryStream())
                             {
-                                Padding = PaddingMode.PKCS7,
-                                Mode = CipherMode.CBC,
-                                KeySize = 128,
-                                BlockSize = 128,
-                                Key = chunkInfo.Key,
-                                IV = iv
-                            };
+                                using (CryptoStream cs = new CryptoStream(ms, algorithm.CreateDecryptor(), CryptoStreamMode.Write))
+                                {
+                                    cs.Write(inputStream, 0, inputStream.Length);
+                                    cs.FlushFinalBlock();
 
-                            MemoryStream ms = new MemoryStream();
-                            CryptoStream cs = new CryptoStream(ms, algorithm.CreateDecryptor(), CryptoStreamMode.Write);
-
-                            cs.Write(inputStream, 0, inputStream.Length);
-                            cs.FlushFinalBlock();
-
-                            byte[] bytes = ms.ToArray();
-                            outputStream.Write(bytes, 0, bytes.Length);
-
-                            cs.Close();
-                            ms.Close();
-                            cs.Dispose();
-                            ms.Dispose();
+                                    byte[] bytes = ms.ToArray();
+                                    outputStream.Write(bytes, 0, bytes.Length);
+                                }
+                            }
                         }
                     }
                 }
