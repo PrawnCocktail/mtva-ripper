@@ -116,6 +116,10 @@ namespace mtva
                 }
             }
 
+            if (string.IsNullOrEmpty(winner))
+            {
+                winner = streams[streams.Count - 1].Playlist;
+            }
             var chunkInfo = getChunks(winner);
 
             try
